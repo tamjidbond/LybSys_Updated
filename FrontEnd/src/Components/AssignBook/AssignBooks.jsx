@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../Navbar/Navbar";
+import { useNavigate } from "react-router-dom";
+
 
 const AssignBooks = () => {
   const [users, setUsers] = useState([]);
@@ -8,8 +10,13 @@ const AssignBooks = () => {
   const [selectedUser, setSelectedUser] = useState("");
   const [assignments, setAssignments] = useState([{ bookId: "", quantity: 1 }]);
   const [dueDate, setDueDate] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/"); // ✅ now it's valid
+    }
     axios
       .get("http://localhost:5000/api/users")
       .then((res) => setUsers(res.data));
@@ -73,19 +80,20 @@ const AssignBooks = () => {
       {/* Navbar */}
       <Navbar />
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-12 sm:py-16 md:py-20 max-w-4xl">
-        <div className="bg-white rounded-lg shadow-xl p-8 text-gray-800">
-          <h2 className="text-3xl font-semibold text-center mb-8">
+        <div className="bg-white/20 rounded-2xl shadow-2xl p-10 text-gray-800 border border-gray-200">
+          <h2 className="text-4xl font-bold text-center mb-10 text-white">
             📚 Assign Books
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* User Selection */}
             <div>
-              <label className="block mb-1 font-medium">Select User</label>
+              <label className="block mb-2 font-semibold text-gray-700 text-lg">
+                Select User
+              </label>
               <select
-                className="w-full border rounded-md p-3 text-gray-700"
+                className="w-full border-2 border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-700 transition"
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
                 required
@@ -103,12 +111,14 @@ const AssignBooks = () => {
             {assignments.map((assignment, index) => (
               <div
                 key={index}
-                className="flex flex-col md:flex-row gap-4 items-end border p-4 rounded-lg bg-gray-50"
+                className="flex flex-col md:flex-row gap-4 items-end border border-gray-300 p-6 rounded-xl bg-transparent shadow-sm"
               >
                 <div className="flex-1">
-                  <label className="block mb-1 font-medium">Select Book</label>
+                  <label className="block mb-2 font-semibold text-gray-700 text-lg">
+                    Select Book
+                  </label>
                   <select
-                    className="w-full border rounded-md p-3 text-gray-700"
+                    className="w-full border-2 border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700 transition"
                     value={assignment.bookId}
                     onChange={(e) =>
                       handleAssignmentChange(index, "bookId", e.target.value)
@@ -124,11 +134,13 @@ const AssignBooks = () => {
                   </select>
                 </div>
 
-                <div className="w-full md:w-32">
-                  <label className="block mb-1 font-medium">Quantity</label>
+                <div className="w-full md:w-36">
+                  <label className="block mb-2 font-semibold text-gray-700 text-lg">
+                    Quantity
+                  </label>
                   <input
                     type="number"
-                    className="w-full border rounded-md p-3 text-gray-700"
+                    className="w-full border-2 border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-gray-700 transition"
                     min="1"
                     value={assignment.quantity}
                     onChange={(e) =>
@@ -141,7 +153,7 @@ const AssignBooks = () => {
                 <button
                   type="button"
                   onClick={() => handleRemoveBook(index)}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow transition"
                 >
                   ✕
                 </button>
@@ -153,7 +165,7 @@ const AssignBooks = () => {
               <button
                 type="button"
                 onClick={handleAddBook}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl shadow-md transition"
               >
                 + Add Another Book
               </button>
@@ -161,10 +173,12 @@ const AssignBooks = () => {
 
             {/* Due Date */}
             <div>
-              <label className="block mb-1 font-medium">Due Date</label>
+              <label className="block mb-2 font-semibold text-gray-700 text-lg">
+                Due Date
+              </label>
               <input
                 type="date"
-                className="w-full border rounded-md p-3 text-gray-700"
+                className="w-full border-2 border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700 transition"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 required
@@ -175,9 +189,9 @@ const AssignBooks = () => {
             <div className="text-center">
               <button
                 type="submit"
-                className="bg-green-600 text-white px-8 py-3 rounded-md hover:bg-green-700"
+                className="bg-green-500 hover:bg-green-600 text-white px-10 py-3 rounded-xl text-lg font-semibold shadow-lg transition"
               >
-                Assign Books
+                ✅ Assign Books
               </button>
             </div>
           </form>

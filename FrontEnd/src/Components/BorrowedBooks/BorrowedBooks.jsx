@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "../Navbar/Navbar";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const BorrowedBooks = () => {
   const [users, setUsers] = useState([]);
@@ -9,23 +10,24 @@ const BorrowedBooks = () => {
   const [loading, setLoading] = useState(false);
   const [returnQuantities, setReturnQuantities] = useState({});
 
-  // Fetch users on component mount
+  const navigate = useNavigate();
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/"); // ✅ now it's valid
+    }
     axios
       .get("http://localhost:5000/api/users")
       .then((res) => setUsers(res.data))
       .catch((err) => console.error("Failed to fetch users", err));
   }, []);
 
-  // Fetch borrowed books when selectedUser changes
   useEffect(() => {
-    if (!selectedUser) return; // Don't fetch if no user is selected
-    
-    // Clear previous borrowed books
+    if (!selectedUser) return;
+
     setBorrowedBooks([]);
     setReturnQuantities({});
-
-    setLoading(true); // Start loading
+    setLoading(true);
 
     axios
       .get(`http://localhost:5000/borrowed-books/${selectedUser}`)
@@ -41,9 +43,9 @@ const BorrowedBooks = () => {
         console.error("Failed to fetch borrowed books", err);
       })
       .finally(() => {
-        setLoading(false); // Stop loading
+        setLoading(false);
       });
-  }, [selectedUser]); // Only run when selectedUser changes
+  }, [selectedUser]);
 
   const handleQuantityChange = (assignmentId, value) => {
     const quantity = parseInt(value) || 0;
@@ -84,62 +86,55 @@ const BorrowedBooks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 bg-gradient-to-br from-sky-600 to-blue-600 text-gray-900">
-      {/* Navbar Component */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-800 to-gray-900 text-white">
       <Navbar />
-
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto p-6 pt-24">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">
+      <main className="max-w-6xl mx-auto px-6 pt-28 pb-12">
+        <h2 className="text-4xl font-bold mb-8 text-center text-white drop-shadow-lg">
           📚 Borrowed Books Management
         </h2>
 
-        {/* User Selection */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <label className="block mb-2 font-semibold text-gray-700">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-10 shadow-xl">
+          <label className="block text-lg font-semibold mb-2 text-white">
             Select User
           </label>
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <select
-              className="flex-1 border border-gray-300 rounded p-2"
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-            >
-              <option value="">-- Choose User --</option>
-              {users.map((user) => (
-                <option key={user._id} value={user._id}>
-                  {user.name} ({user.email})
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            className="w-full bg-white/20 border border-white/30 backdrop-blur-md text-white p-3 rounded-xl focus:outline-none"
+            value={selectedUser}
+            onChange={(e) => setSelectedUser(e.target.value)}
+          >
+            <option value="">-- Choose User --</option>
+            {users.map((user) => (
+              <option key={user._id} value={user._id} className="text-black">
+                {user.name} ({user.email})
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Borrowed Books List */}
-        {loading && <p className="text-gray-500">Loading borrowed books...</p>}
+        {loading && (
+          <p className="text-center text-gray-300 animate-pulse">
+            Loading borrowed books...
+          </p>
+        )}
 
         {!loading && borrowedBooks.length > 0 && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {borrowedBooks.map((book) => (
               <div
                 key={book.assignmentId}
-                className="bg-white shadow-md p-4 rounded-lg"
+                className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 shadow-md transition hover:scale-[1.02] hover:shadow-xl"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {book.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Quantity: {book.quantity} | Due:{" "}
-                      {new Date(book.dueDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 mt-3">
+                <h3 className="text-xl font-bold mb-1 text-white">
+                  {book.name}
+                </h3>
+                <p className="text-sm text-gray-200 mb-3">
+                  Quantity: {book.quantity} | Due:{" "}
+                  {new Date(book.dueDate).toLocaleDateString()}
+                </p>
+                <div className="flex items-center gap-3">
                   <input
                     type="number"
-                    className="border px-3 py-2 rounded-md w-24"
+                    className="w-20 p-2 bg-white/20 border border-white/30 text-white rounded-lg focus:outline-none"
                     min="1"
                     max={book.quantity}
                     value={returnQuantities[book.assignmentId] || ""}
@@ -149,7 +144,7 @@ const BorrowedBooks = () => {
                   />
                   <button
                     onClick={() => returnBooks(book.assignmentId, book._id)}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                    className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition"
                   >
                     Return
                   </button>
@@ -160,7 +155,7 @@ const BorrowedBooks = () => {
         )}
 
         {!loading && borrowedBooks.length === 0 && selectedUser && (
-          <p className="text-gray-600 text-center mt-4">
+          <p className="text-center text-gray-300 mt-8">
             No borrowed books found for this user.
           </p>
         )}

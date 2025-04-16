@@ -1,13 +1,30 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { User, Book } from "lucide-react";
+import { Pie, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from "chart.js";
+import { User, BookOpen, BookCheck, BookX } from "lucide-react";
 import Navbar from "../Navbar/Navbar";
 import { useNavigate } from "react-router-dom";
 import { Fade } from "react-awesome-reveal";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+);
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -19,19 +36,23 @@ const Dashboard = () => {
     returnedBooks: 0,
   });
 
+  const greeting = () => {
+    const hr = new Date().getHours();
+    if (hr < 12) return "Good Morning ☀️";
+    if (hr < 18) return "Good Afternoon 🌤️";
+    return "Good Evening 🌙";
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) navigate("/");
 
     const fetchData = async () => {
       try {
-        const [statsRes,] = await Promise.all([
-          axios.get("http://localhost:5000/dashboard/stats"),
-        ]);
-
-        setStats(statsRes.data);
+        const res = await axios.get("http://localhost:5000/dashboard/stats");
+        setStats(res.data);
       } catch (err) {
-        console.error("Error loading dashboard data:", err);
+        console.error("Dashboard error:", err);
       }
     };
 
@@ -39,7 +60,7 @@ const Dashboard = () => {
   }, [navigate]);
 
   const pieData = {
-    labels: ["Borrowed", "Available"],
+    labels: ["Borrowed", "Returned"],
     datasets: [
       {
         data: [stats.borrowedBooks, stats.returnedBooks],
@@ -49,72 +70,142 @@ const Dashboard = () => {
     ],
   };
 
-  const pieOptions = {
+  const barData = {
+    labels: ["Users", "Books", "Borrowed", "Returned"],
+    datasets: [
+      {
+        label: "Statistics",
+        data: [
+          stats.userCount,
+          stats.bookCount,
+          stats.borrowedBooks,
+          stats.returnedBooks,
+        ],
+        backgroundColor: ["#0ea5e9", "#8b5cf6", "#f97316", "#22c55e"],
+      },
+    ],
+  };
+
+  const barOptions = {
+    scales: {
+      y: { beginAtZero: true },
+    },
     plugins: {
-      legend: {
-        position: "bottom",
-        labels: {
-          color: darkMode ? "#fff" : "#000",
-        },
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => `${context.label}: ${context.raw}`,
-        },
-      },
+      legend: { display: false },
     },
   };
 
   const statistics = [
     { icon: User, count: stats.userCount, text: "Total Users" },
-    { icon: Book, count: stats.bookCount, text: "Total Books" },
+    { icon: BookOpen, count: stats.bookCount, text: "Total Books" },
+    { icon: BookCheck, count: stats.borrowedBooks, text: "Borrowed Books" },
+    { icon: BookX, count: stats.returnedBooks, text: "Returned Books" },
   ];
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
+  const downloadReport = () => {
+    const doc = new jsPDF();
+    doc.text("Library Dashboard Report", 10, 10);
+    doc.text(`Users: ${stats.userCount}`, 10, 20);
+    doc.text(`Books: ${stats.bookCount}`, 10, 30);
+    doc.text(`Borrowed: ${stats.borrowedBooks}`, 10, 40);
+    doc.text(`Returned: ${stats.returnedBooks}`, 10, 50);
+    doc.save("library_report.pdf");
+  };
+
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 ${
-        darkMode ? "bg-gray-900 text-white" : "bg-gradient-to-br from-sky-700 to-blue-800 text-gray-900"
+      className={`min-h-screen transition duration-300  ${
+        darkMode
+          ? "bg-gray-900 text-white"
+          : "bg-gradient-to-br from-sky-700 to-blue-900 text-white"
       }`}
     >
       <Navbar />
-      <div className="container mx-auto px-6 py-24">
-        <button
-          onClick={toggleDarkMode}
-          className="mb-8 inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-transform transform hover:scale-105 shadow-lg"
-        >
-          <span className="material-icons">
-            {darkMode ? "dark_mode" : "light_mode"}
-          </span>
-          Toggle {darkMode ? "Light" : "Dark"} Mode
-        </button>
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-between items-center mb-8 ">
+          <h1 className="text-3xl font-semibold">{greeting()}, Admin 👋</h1>
+          <div className="flex gap-4">
+            <button
+              onClick={toggleDarkMode}
+              className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 transition shadow"
+            >
+              {darkMode ? "☀️ Light" : "🌙 Dark"}
+            </button>
+            <button
+              onClick={downloadReport}
+              className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 transition shadow"
+            >
+              📄 Download Report
+            </button>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Pie Chart */}
-          <Fade>
-            <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl shadow-xl hover:shadow-2xl transition hover:scale-105">
-              <Pie data={pieData} options={pieOptions} />
-            </div>
-          </Fade>
-
-          {/* Stats Cards */}
-          <Fade cascade>
-            <div className="flex flex-col gap-4">
-              {statistics.map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-4 p-5 bg-white/10 backdrop-blur-md rounded-xl shadow-lg hover:shadow-xl transition hover:scale-105"
-                >
-                  <stat.icon className="w-10 h-10 text-yellow-400" />
-                  <div>
-                    <h4 className="text-2xl font-bold">{stat.count}</h4>
-                    <p className="text-sm text-gray-300">{stat.text}</p>
-                  </div>
+        {/* Stats Cards */}
+        <Fade cascade damping={0.1}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            {statistics.map((stat, idx) => (
+              <div
+                key={idx}
+                className="p-6 rounded-xl shadow-lg bg-white/10 backdrop-blur-md hover:scale-105 transition transform flex items-center gap-4"
+              >
+                <stat.icon className="w-10 h-10 text-yellow-400" />
+                <div>
+                  <p className="text-2xl font-bold">{stat.count}</p>
+                  <p className="text-sm">{stat.text}</p>
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        </Fade>
+
+        <div className="flex flex-col gap-6 md:flex-col lg:flex-row"> 
+          {/* Charts Section */}
+          <div className="flex-1">
+            <Fade>
+              <div className="bg-white/10 p-6 rounded-xl shadow-lg hover:shadow-2xl transition">
+                <h3 className="mb-4 font-semibold text-lg">
+                  Borrowed vs Returned
+                </h3>
+                <Pie data={pieData} />
+              </div>
+            </Fade>
+          </div>
+
+          <div className="flex-1">
+            {/* summary  */}
+            <div>
+              <Fade>
+                <div className="bg-white/9 p-6 rounded-xl shadow-lg hover:shadow-2xl transition text-white">
+                  <h3 className="mb-4 font-semibold text-lg">
+                    Overall Summary
+                  </h3>
+                  <Bar data={barData} options={barOptions} />
+                </div>
+              </Fade>
             </div>
-          </Fade>
+
+            {/* Recent Activity */}
+            <div className="mt-12 bg-white/10 p-6 rounded-xl shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">
+                📚 Recent Activities
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  John borrowed <span className="italic">“Atomic Habits”</span>
+                </li>
+                <li>
+                  Sarah returned{" "}
+                  <span className="italic">“Rich Dad Poor Dad”</span>
+                </li>
+                <li>
+                  Alex added new book{" "}
+                  <span className="italic">“The Psychology of Money”</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
